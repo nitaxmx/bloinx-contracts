@@ -2,7 +2,7 @@
 pragma solidity ^0.7.6;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/release-v3.4-solc-0.7/contracts/token/ERC20/IERC20.sol";//"@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./Modifiers.sol";
 
 contract SavingGroups is Modifiers {
@@ -35,6 +35,7 @@ contract SavingGroups is Modifiers {
     uint256 public cashIn; //amount to be payed as commitment at the begining of the saving circle
     uint256 public saveAmount; //Payment on each round/cycle
     uint256 public groupSize; //Number of slots for users to participate on the saving circle
+    uint256 public adminFee; //The fee the admin will charge to the users, it will be taken from the users cashin
 
     //Counters and flags
     uint256 usersCounter = 0;
@@ -309,7 +310,7 @@ contract SavingGroups is Modifiers {
                             users[useraddress].owedTotalCashIn += debtUser;  //Lo que se debe a la bolsa de CashIn 
                             users[userInTurn].availableSavings += debtUser;
    
-                        } else {
+                        } else {   //se traban los fondos
                             outOfFunds = true;
                             if(i == 1) {
                                 emergencyWithdraw();
@@ -365,7 +366,10 @@ contract SavingGroups is Modifiers {
                 users[userAddr].availableSavings = 0;
                 users[userAddr].availableCashIn = 0;
                 users[userAddr].isActive = false;
-                transferTo(users[userAddr].userAddr, amountTemp);
+                amountTempAdmin=(amountTemp*100)/adminfee;
+                amountTempUsr=amountTemp-adminfee;
+                transferTo(users[userAddr].userAddr, (amountTempUsr);
+                transferTo(admin, (amountTempAdmin);
                 amountTemp = 0;
                 stage = Stages.Finished;        
                 emit EndRound(address(this), startTime, block.timestamp);
