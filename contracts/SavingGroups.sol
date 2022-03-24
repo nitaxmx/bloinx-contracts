@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BSD 3-Clause License
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/release-v3.4-solc-0.7/contracts/token/ERC20/IERC20.sol";//"@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./Modifiers.sol";
 
 contract SavingGroups is Modifiers {
@@ -69,6 +69,7 @@ contract SavingGroups is Modifiers {
         uint256 _saveAmount,
         uint256 _groupSize,
         address _admin,
+        uint256 _adminFee,
         uint256 _payTime,
         IERC20 _token
     ) public {
@@ -76,13 +77,14 @@ contract SavingGroups is Modifiers {
         require(_admin != address(0), "La direccion del administrador no puede ser cero");
         require(_groupSize > 1 && _groupSize <= 10, "El tamanio del grupo debe ser mayor a uno y menor o igual a 10");
         admin = _admin;
+        adminFee = _adminFee;
         cashIn = _cashIn * 1e18;
         saveAmount = _saveAmount * 1e18;
         groupSize = _groupSize;
         stage = Stages.Setup;
         addressOrderList = new address[](_groupSize);
         require(_payTime > 0, "El tiempo para pagar no puede ser menor a un dia");
-        payTime = _payTime * 86400; 
+        payTime = _payTime;//_payTime * 86400; 
         feeCost = (saveAmount * 500)/ 10000; // calculate 5% fee
     }
 
@@ -312,9 +314,6 @@ contract SavingGroups is Modifiers {
    
                         } else {   //se traban los fondos
                             outOfFunds = true;
-                            if(i == 1) {
-                                emergencyWithdraw();
-                            }
                         }                   
                         //update my own availableCashIn
                         if (users[useraddress].owedTotalCashIn < cashIn){
@@ -337,7 +336,7 @@ contract SavingGroups is Modifiers {
         users[_userAddress].owedTotalCashIn = 0;
     } 
 
-    function emergencyWithdraw() internal {
+    function emergencyWithdraw() public atStage(Stages.Emergency) {
         uint256 saldoAtorado = cUSD.balanceOf(address(this));
         require(saldoAtorado > 0, "No es mayor a Cero");
         transferTo(devAddress, saldoAtorado);
@@ -366,10 +365,10 @@ contract SavingGroups is Modifiers {
                 users[userAddr].availableSavings = 0;
                 users[userAddr].availableCashIn = 0;
                 users[userAddr].isActive = false;
-                amountTempAdmin=(amountTemp*100)/adminfee;
-                amountTempUsr=amountTemp-adminfee;
-                transferTo(users[userAddr].userAddr, (amountTempUsr);
-                transferTo(admin, (amountTempAdmin);
+                uint256 amountTempAdmin=(amountTemp*adminFee)/100;
+                uint256 amountTempUsr=amountTemp-amountTempAdmin;
+                transferTo(users[userAddr].userAddr, amountTempUsr);
+                transferTo(admin, amountTempAdmin);
                 amountTemp = 0;
                 stage = Stages.Finished;        
                 emit EndRound(address(this), startTime, block.timestamp);
@@ -381,9 +380,10 @@ contract SavingGroups is Modifiers {
                 users[userAddr].availableSavings = 0;
                 users[userAddr].availableCashIn = 0;
                 users[userAddr].isActive = false;
-                amountTemp = 0;
+                amountTemp = 0; 
                 stage = Stages.Emergency; 
             }
+            
         }
         
     } 
